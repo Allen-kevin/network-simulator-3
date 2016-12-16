@@ -71,7 +71,7 @@ uint32_t cWndValue;
 uint32_t ssThreshValue;
 
 /* wanwenkai */
-void ChangeBw (void);
+void BandwidthTrace (void);
 void ScheduleBw (void);
 std::string bandwidth = "2Mbps";
 uint32_t m_timer_value = 100;
@@ -215,31 +215,31 @@ TraceNextRx (std::string &next_rx_seq_file_name)
  * bottleneck bandwidth every through m_timer_value
  */
 ifstream bwfile ("downlink.txt");
-PointToPointHelper UnReLink;
 
 void
-ChangeBw (void)
+BandwidthTrace (void)
 {
 	getline (bwfile, bandwidth);
-	//cout << "ChangeBw bandwidth " << bandwidth << endl;
-	UnReLink.SetDeviceAttribute ("DataRate", StringValue (bandwidth));
+	Config::Set ("/NodeList/2/DeviceList/2/$ns3::PointToPointNetDevice/DataRate",StringValue (bandwidth));
 
+	cout << "BandwidthTrace bandwidth " << bandwidth << endl;
 	if (!bwfile.eof ())
 	{
 		ScheduleBw ();
 	}
-	else 
+	else  
 	{
 		std::cout << "end of file!" << std::endl;
 	}
+
 }
 
 void
 ScheduleBw (void)
 {
-	Simulator::Schedule (MilliSeconds (m_timer_value), ChangeBw);
+	Simulator::Schedule (MilliSeconds (m_timer_value), BandwidthTrace);
 }
-/* end */
+/* end */ 
 
 int main (int argc, char *argv[])
 {
@@ -252,9 +252,9 @@ int main (int argc, char *argv[])
   bool tracing = false;
   std::string prefix_file_name = "TcpVariantsComparison";
   double data_mbytes = 0;
-  uint32_t mtu_bytes = 400;
+  uint32_t mtu_bytes = 1508;
   uint16_t num_flows = 1;
-  float duration = 3000;
+  float duration = 60;
   uint32_t run = 0;
   bool flow_monitor = false;
   bool pcap = false;
@@ -385,16 +385,16 @@ int main (int argc, char *argv[])
   error_model.SetUnit (RateErrorModel::ERROR_UNIT_PACKET);
   error_model.SetRate (error_p);
 	
-  ChangeBw ();//wanwenkai
-//  PointToPointHelper UnReLink;
-//  UnReLink.SetDeviceAttribute ("DataRate", StringValue (bandwidth));
+//  BandwidthTrace ();//wanwenkai
+  //Config::Set ("/NodeList/0/Device/0/$ns3::PointToPointNetDevice/DataRate",StringValue ("bandeidth"));
+  PointToPointHelper UnReLink;
+  UnReLink.SetDeviceAttribute ("DataRate", StringValue (bandwidth));
   UnReLink.SetChannelAttribute ("Delay", StringValue (delay));
   UnReLink.SetDeviceAttribute ("ReceiveErrorModel", PointerValue (&error_model));
 
-
   InternetStackHelper stack;
   stack.InstallAll ();
-
+  BandwidthTrace ();//wanwenkai
   TrafficControlHelper tchPfifo;
   tchPfifo.SetRootQueueDisc ("ns3::PfifoFastQueueDisc");
 
@@ -514,6 +514,7 @@ int main (int argc, char *argv[])
       Simulator::Schedule (Seconds (0.00001), &TraceNextTx, prefix_file_name + "-next-tx.data");
       Simulator::Schedule (Seconds (0.00001), &TraceInFlight, prefix_file_name + "-inflight.data");
       Simulator::Schedule (Seconds (0.1), &TraceNextRx, prefix_file_name + "-next-rx.data");
+	  //Simulator::Schedule (MilliSeconds (m_timer_value), BandwidthTrace);//wanwenkai
     }
 
   if (pcap)
